@@ -5,6 +5,7 @@
 
 # car package includes recode
 library(car)
+library(reshape2)
 
 # Read the training and test set components
 ## subject_{set} lists the subject identifiers 
@@ -18,8 +19,15 @@ X_train <- read.table("C:/COURSERA/Data Science II/UCI HAR Dataset/train/X_train
 X_test <- read.table("C:/COURSERA/Data Science II/UCI HAR Dataset/test/X_test.txt", quote="\"")
 ## features contains the variable names
 features <- read.table("C:/COURSERA/Data Science II/UCI HAR Dataset/features.txt", quote="\"")
-names(X_train) <- as.vector(t(features[2]))
-names(X_test) <- as.vector(t(features[2]))
+## Use descriptive activity names to name the activities in the data set
+## remove or substitute unwanted characters from variable names
+measures <- as.vector(t(features[2]))
+measures <- gsub("()", "", measures, fixed=TRUE)
+measures <- gsub("(", "-", measures, fixed=TRUE)
+measures <- gsub(")", "", measures, fixed=TRUE)
+measures <- gsub(",", "-", measures)
+names(X_train) <- measures
+names(X_test) <- measures
 
 ## y_{set} contains coded activities
 y_train <- read.table("C:/COURSERA/Data Science II/UCI HAR Dataset/train/y_train.txt", quote="\"")
@@ -38,6 +46,7 @@ activity_data <- rbind(activity_train, activity_test)
 # names(activity_data)
 
 # Extract only the measurements on the mean and standard deviation for each measurement 
+## Appropriately label the data set with descriptive activity names 
 activity_measures <- activity_data[
     regexpr("subject", names(activity_data)) > 0 |
     regexpr("activity", names(activity_data)) > 0 |
@@ -45,9 +54,10 @@ activity_measures <- activity_data[
     regexpr("Mean", names(activity_data)) > 0 | 
     regexpr("std", names(activity_data)) > 0]
 # names(activity_measures)
-
-## Use descriptive activity names to name the activities in the data set
-## Appropriately label the data set with descriptive activity names 
+measure_vars <- names(activity_measures)[4:89]
 
 # Create a tidy data set with the average of each variable for each activity and each subject
-summary(activity_measures)
+activity_measures_melt <- melt(activity_measures, id.vars=c("subject_id", "activity"), measure.vars=measure_vars)
+activity_measures_tidy <- dcast(data=activity_measures_melt, formula=subject_id + activity ~ variable, fun.aggregate=mean)
+## Write result in csv format
+write.csv(activity_measures_tidy, file="C:/COURSERA/Data Science II/UCI HAR Dataset/result.txt", row.names=FALSE)
